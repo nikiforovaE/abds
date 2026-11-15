@@ -46,7 +46,7 @@ def build_realties():
             "type": "nrcp",
             "number": "",
             "floor": 1,
-            "porch": 0,
+            "porch": 1,
             "commercial": True
         })
         rid += 1
