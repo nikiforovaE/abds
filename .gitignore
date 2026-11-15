@@ -1,3 +1,5 @@
+volume
+data
 # ============================================
 # Operating System
 # ============================================
@@ -68,6 +70,7 @@ go.work.sum
 vendor/
 
 # Java
+*.iml
 *.class
 *.jar
 *.war

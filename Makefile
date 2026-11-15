@@ -1,22 +1,54 @@
-.PHONY: run rund services stop clean
-.DEFAULT_GOAL = run
+.PHONY: run rund stop setup schema teardown load gen
 
-# Runs all services in detached mode.
+include .env.local
+export
+
+# Запускает проект в фоновом режиме.
 run:
+	@echo "Запускаю проект в фоновом режиме..."
 	docker compose --env-file .env.local up -d --build
 
-# Runs all services without detached mode (for debugging).
+# Запускает проект в режиме отладки с просмотром всех логов.
 rund:
+	@echo "Запускаю проект..."
 	docker compose --env-file .env.local up --build
 
-# Shows all service statuses.
-services:
-	docker compose ps
-
-# Stops all running services.
+# Останавливает контейнеры.
 stop:
-	docker compose down
+	@echo "Останавливаю проект..."
+	docker compose --env-file .env.local down
 
-# Cleans up all resources including volumes.
-clean:
-	docker compose down -v
+# Настройка и прогрев системы.
+# Создаст схему БД, сгенерирует и загрузит все датасеты в таблицы.
+setup: teardown schema gen load
+
+# Очистка системы
+teardown: .drop-ch
+
+# Создаёт схему базы данных.
+schema:
+	@echo "Создаём таблицы в ClickHouse..."
+	@for f in script/sql/ddl/*.table.sql; do \
+		echo "Выполняю $$f..."; \
+		./script/sh/run_sql.sh "$$f" || exit 1; \
+	done
+
+.drop-ch:
+	@echo "Удаляем таблицы в ClickHouse..."
+	@./script/sh/run_sql.sh script/sql/dml/drop_all.sql || true
+
+# Загружает датасеты во все таблицы
+load:
+	@echo "Загружаем датасеты в ClickHouse..."
+	@for t in dim_users dim_realty dim_gauges dim_tariffs fact_gauge_bindings fact_meter_readings fact_invoice; do \
+		echo "Загружаем $$t..."; \
+		docker compose --env-file .env.local exec -T clickhouse clickhouse-client \
+			--database "$(CLICKHOUSE_DATABASE)" \
+			--query "INSERT INTO $$t FORMAT CSVWithNames" < data/$$t.dataset.csv || exit 1; \
+	done
+
+# Генерирует большие датасеты в data/.
+gen:
+	@echo "Генерируем датасеты в data/..."
+	mkdir -p data
+	python3 script/py/gen_datasets.py
