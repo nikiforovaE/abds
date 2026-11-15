@@ -70,6 +70,7 @@ go.work.sum
 vendor/
 
 # Java
+*.iml
 *.class
 *.jar
 *.war
