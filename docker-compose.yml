@@ -1,0 +1,35 @@
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:26.7
+    container_name: clickhouse
+    ports:
+      - "${CLICKHOUSE_HTTP_PORT}:8123"
+      - "${CLICKHOUSE_PORT}:9000"
+    volumes:
+      - ./volume:/var/lib/clickhouse
+    environment:
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: "${CLICKHOUSE_PASSWORD}"
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    restart: unless-stopped
+
+#  app:
+#    build: .
+#    container_name: energosbyt-app
+#    ports:
+#      - "${APP_PORT}:${APP_PORT}"
+#    environment:
+#      - APP_PORT=${APP_PORT}
+#      - CLICKHOUSE_HOST=${CLICKHOUSE_HOST}
+#      - CLICKHOUSE_PORT=${CLICKHOUSE_PORT}
+#      - CLICKHOUSE_HTTP_PORT=${CLICKHOUSE_HTTP_PORT}
+#      - CLICKHOUSE_USER=${CLICKHOUSE_USER}
+#      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+#      - CLICKHOUSE_DATABASE=${CLICKHOUSE_DATABASE}
+#    depends_on:
+#      - clickhouse
+#    restart: unless-stopped
+
+volumes:
+  volume:
+    driver: local
