@@ -1,5 +1,8 @@
 .PHONY: run rund stop setup schema teardown load gen
 
+include .env.local
+export
+
 # Запускает проект в фоновом режиме.
 run:
 	@echo "Запускаю проект в фоновом режиме..."
@@ -17,7 +20,7 @@ stop:
 
 # Настройка и прогрев системы.
 # Создаст схему БД, сгенерирует и загрузит все датасеты в таблицы.
-setup: schema gen load
+setup: teardown schema gen load
 
 # Очистка системы
 teardown: .drop-ch
@@ -39,14 +42,13 @@ load:
 	@echo "Загружаем датасеты в ClickHouse..."
 	@for t in dim_users dim_realty dim_gauges dim_tariffs fact_gauge_bindings fact_meter_readings fact_invoice; do \
 		echo "Загружаем $$t..."; \
-		docker compose --env-file .env.local exec -i clickhouse clickhouse-client \
-			--user "$$CLICKHOUSE_USER" \
-			--database "$$CLICKHOUSE_DATABASE" \
-			--query "INSERT INTO $$t FORMAT CSV" < data/$$t.dataset.csv || exit 1; \
+		docker compose --env-file .env.local exec -T clickhouse clickhouse-client \
+			--database "$(CLICKHOUSE_DATABASE)" \
+			--query "INSERT INTO $$t FORMAT CSVWithNames" < data/$$t.dataset.csv || exit 1; \
 	done
 
 # Генерирует большие датасеты в data/.
 gen:
 	@echo "Генерируем датасеты в data/..."
 	mkdir -p data
-	# тут будет вызов генератора
+	python3 script/py/gen_datasets.py
